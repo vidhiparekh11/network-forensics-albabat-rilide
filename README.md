@@ -1,3 +1,7 @@
+# Network Forensics: Albabat Ransomware & Rilide Infostealer
+
+![Status](https://img.shields.io/badge/status-complete-teal) ![Tools](https://img.shields.io/badge/tools-Wireshark%20%7C%20Suricata%20%7C%20Dalton-blue) ![Framework](https://img.shields.io/badge/framework-MITRE%20ATT%26CK-red)
+
 ## Overview
 
 This project documents a full network forensics investigation into two active malware families — **Albabat ransomware** and **Rilide infostealer** — with a focus on C2 communication analysis, detection engineering, and incident response.
