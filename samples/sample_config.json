@@ -1,0 +1,6 @@
+{
+  "_note": "SYNTHETIC sample for testing the parser. Not a real Albabat payload.",
+  "encrypt": {"extensions": [".doc", ".xlsx", ".sql", ".bak", "jpg"]},
+  "pre_encryption": {"kill_processes": ["sqlservr.exe", "mysqld.exe", "outlook.exe"]},
+  "callbacks": ["https://example.invalid/panel/report"]
+}
