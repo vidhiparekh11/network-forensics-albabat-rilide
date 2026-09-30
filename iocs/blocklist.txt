@@ -1,0 +1,3 @@
+# Feed to: nfa analyze <pcap> --blocklist iocs/blocklist.txt
+# Only indicators that are safe to block. Legitimate services are deliberately excluded.
+mmemento-mori.com
