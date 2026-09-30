@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netforensics-toolkit"
+version = "0.1.0"
+description = "Defensive PCAP analysis: behavioral detections and IOC export for ransomware / browser-stealer network traffic"
+requires-python = ">=3.9"
+dependencies = ["scapy>=2.5"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+nfa = "netforensics.cli:main"
+
+[tool.setuptools]
+packages = ["netforensics"]
