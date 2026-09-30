@@ -1,0 +1,37 @@
+# Albabat / Rilide network detections. sids 1000001-1000099 (local range).
+# Written for Suricata 7. Behavioral rules: tune $HOME_NET/$EXTERNAL_NET and thresholds to your environment.
+# NOTE: HTTP-layer rules see traffic only where TLS is decrypted/inspected (proxy, TLS-intercept, or
+# replayed decrypted captures); the tls.sni rules work on encrypted traffic.
+
+# --- Config retrieval from GitHub-hosted raw content by a non-browser client (decrypted HTTP)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL NFA Possible ransomware config fetch from GitHub raw by non-browser client"; flow:established,to_server; http.method; content:"GET"; http.host; content:"raw.githubusercontent.com"; endswith; http.user_agent; content:!"Mozilla"; classtype:trojan-activity; sid:1000001; rev:1; metadata:attack_target Client_Endpoint, mitre_technique_id T1071.001, created_at 2026_09_30;)
+
+# --- Same destination, no TLS decryption: repeated SNI hits to raw GitHub content from one host
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL NFA Repeated TLS connections to raw.githubusercontent.com (config polling?)"; flow:established,to_server; tls.sni; content:"raw.githubusercontent.com"; bsize:25; threshold:type both, track by_src, count 5, seconds 600; classtype:misc-activity; sid:1000002; rev:1; metadata:mitre_technique_id T1071.001;)
+
+# --- Infostealer-style upload: POST to a raw IP host (decrypted HTTP)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL NFA HTTP POST to raw-IP host (possible stealer exfiltration)"; flow:established,to_server; http.method; content:"POST"; http.host; pcre:"/^\d{1,3}(?:\.\d{1,3}){3}(?::\d{1,5})?$/"; classtype:trojan-activity; sid:1000003; rev:1; metadata:mitre_technique_id T1041;)
+
+# --- POST with no User-Agent header to the internet
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL NFA HTTP POST without User-Agent"; flow:established,to_server; http.method; content:"POST"; http.header; content:!"User-Agent|3a|"; nocase; classtype:trojan-activity; sid:1000004; rev:1; metadata:mitre_technique_id T1041;)
+
+# --- Ransomware propagation: many SMB connection attempts from one internal host
+alert tcp $HOME_NET any -> $HOME_NET [139,445] (msg:"LOCAL NFA SMB fan-out from single host (ransomware spread / share enumeration)"; flags:S; threshold:type both, track by_src, count 15, seconds 60; classtype:attempted-recon; sid:1000005; rev:1; metadata:mitre_technique_id T1021.002;)
+
+# --- DNS: excessively long query names (tunneling / encoded exfil)
+alert dns $HOME_NET any -> any any (msg:"LOCAL NFA Very long DNS query name"; dns.query; pcre:"/^.{60,}$/"; classtype:bad-unknown; sid:1000006; rev:1; metadata:mitre_technique_id T1071.004;)
+
+# ======================= Rilide (from the Rilide investigation report) =======================
+# Direct indicators
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL NFA Rilide malicious Chrome extension ID in request Origin"; flow:established,to_server; http.header; content:"chrome-extension|3a 2f 2f|pnkjgfienlbflgofbgoepgmpaiflcahf"; nocase; classtype:trojan-activity; sid:1000010; rev:1; metadata:mitre_technique_id T1071.001;)
+alert dns $HOME_NET any -> any any (msg:"LOCAL NFA DNS lookup for suspected Rilide C2 domain mmemento-mori.com (UNVERIFIED IOC)"; dns.query; content:"mmemento-mori.com"; nocase; endswith; classtype:trojan-activity; sid:1000011; rev:1; metadata:mitre_technique_id T1071.001;)
+
+# Anomalous-client rules. The report observed these Microsoft endpoints; on their own they are normal Windows
+# traffic, so we alert only when the *client* is not the native Windows component (impersonation / replay).
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL NFA deviceaddcredential.srf POST from non-Windows-IDCRL client"; flow:established,to_server; http.method; content:"POST"; http.uri; content:"/ppsecure/deviceaddcredential.srf"; http.user_agent; content:!"IDCRL"; classtype:trojan-activity; sid:1000012; rev:1; metadata:mitre_technique_id T1056;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL NFA SLActivateProduct POST from non-SLSSoapClient"; flow:established,to_server; http.method; content:"POST"; http.uri; content:"/SLActivateProduct/SLActivateProduct.asmx"; http.user_agent; content:!"SLSSoapClient"; classtype:trojan-activity; sid:1000013; rev:1; metadata:mitre_technique_id T1082;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"LOCAL NFA Google ListAccounts request from non-Chromium client"; flow:established,to_server; http.uri; content:"/ListAccounts"; startswith; http.host; content:"accounts.google.com"; http.user_agent; content:!"Chrome/"; classtype:trojan-activity; sid:1000014; rev:1; metadata:mitre_technique_id T1082;)
+
+# --- TEMPLATE: known-bad infrastructure. Fill from iocs/indicators.md, then uncomment.
+# alert ip $HOME_NET any -> [<C2_IP_1>,<C2_IP_2>] any (msg:"LOCAL NFA Traffic to known Albabat/Rilide C2 IP"; classtype:trojan-activity; sid:1000090; rev:1;)
+# alert dns $HOME_NET any -> any any (msg:"LOCAL NFA DNS lookup for known C2 domain"; dns.query; content:"<c2-domain.tld>"; nocase; endswith; classtype:trojan-activity; sid:1000091; rev:1;)
